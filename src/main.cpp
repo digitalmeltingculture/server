@@ -6,19 +6,15 @@
  */
 
 #include <iostream>
+#include <vector>
+#include <thread>
+
 using  namespace std;
 
 #include <netinet/in.h>
 
 #include "constants.h"
-#include "server.h"
-
-
-int foo( const void* tmp){
-	int *a;
-	a = (int*)tmp;
-	printf("\n%d\n",*a);
-}
+#include "serverconnectionhandler.h"
 
 int main (int argc, char** argv){
 	if(argc < 2){
@@ -26,12 +22,8 @@ int main (int argc, char** argv){
 		//man();
 		return 0;
 	}
-
-	int n = 23;
-	foo(&n);
-	return 0;
 	
 	int portNumber = atoi(argv[1]);
-	Server *server1= new Server(portNumber);
+	ServerConnectionHandler *server1= new ServerConnectionHandler(portNumber);
 	server1->acceptConnections(0);
 }
