@@ -21,6 +21,8 @@ private:
 
 	int clientSockFd[Constants::MAX_CONNECTIONS_NUMBER];
 	vector<thread*> tidVector;
+
+	map<int, thread*> sockThreadMap;
 	int availableConnections;
 
 public:
@@ -34,17 +36,20 @@ public:
 	int getPortNumber();
 	void setPortNumber(int);
 	int acceptConnections(int);
-	static void* threadHandler(void*);
+
 	int removeConnection(int);
 	int ricerca(int);
-	 int receive(int, int);
-	size_t receiveDouble(const char*);
-	size_t receiveFloat(const char*);
-	size_t receiveInt(const char*);
+	int parseReceivedData(int, void *, size_t);
+
+	double receiveDouble(const char*);
+	float receiveFloat(const char*);
+	int receiveInt(const char*);
 	size_t receiveChar(const char*);
 	size_t receiveString(const char*);
-	size_t receiveClose(const char*,int);
-	static void foo(int, ServerConnectionHandler*);
+	int closeAndRemoveConnection(int, const char*);
+	int ParseData(char*);
+
+	static void threadHandler(int, ServerConnectionHandler*, int);
 };
 
 #endif /* INCLUDE_SERVERCONNECTIONHANDLER_H_ */

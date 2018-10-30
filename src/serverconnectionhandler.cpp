@@ -18,6 +18,7 @@
 using namespace std;
 
 #include <vector>
+#include <map>
 #include <thread>
 
 #include "constants.h"
@@ -51,18 +52,18 @@ int ServerConnectionHandler::initConnection() {
 
 	// Creating socket file descriptor
 	if ((serverFd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-		perror("socket failed");
+		perror(Constants::ERROR_CREATE_SOCKET_MSG);
 		exit(EXIT_FAILURE);
 	}
 
 	if (bind(serverFd, (struct sockaddr *) &serverAddress,
 			sizeof(serverAddress)) < 0) {
-		perror("bind failed");
+		perror(Constants::ERROR_BIND_FAILED_MSG);
 		exit(EXIT_FAILURE);
 	}
 
 	if (listen(serverFd, Constants::MAX_CONNECTIONS_NUMBER) < 0) {
-		perror("listen");
+		perror(Constants::ERROR_LISTEN_FAILURE);
 		exit(EXIT_FAILURE);
 	}
 
@@ -82,11 +83,10 @@ int ServerConnectionHandler::acceptConnections(int exitCondition) {
 	char *ip = inet_ntoa(serverAddress.sin_addr);
 	unsigned int port = ntohs(serverAddress.sin_port);
 
-	cout << "Server, accepting nextConnections at address " << ip
+	cout << Constants::SERVER_ACCEPT<< ip
 			<< " and port " << port << endl;
 
 	while (!exitCondition) {
-		cout << "ASPETTO nuova connessione" << endl;
 
 		if (availableConnections == 0)
 			continue;
@@ -94,103 +94,94 @@ int ServerConnectionHandler::acceptConnections(int exitCondition) {
 		if ((newSocket = accept(serverFd, (struct sockaddr *) &serverAddress,
 				(socklen_t*) &addrlen)) < 0) {
 			// Se la creazione del socket da problemi  ritorna errore
-			perror("not accept");
+			perror(Constants::SERVER_NOT_ACCEPT);
 			return EXIT_FAILURE;
 		}
-		// Se la connessione è andata a buon fine mi crea il threa che gestiche i dati
+		// Se la connessione è andata a buon fine mi crea il thread che gestiche i dati
 		cout << "nuova connessione" << endl;
 
-		if ((tmpThread = new thread(ServerConnectionHandler::foo, newSocket, this))
-				== NULL)
+		if ((tmpThread = new thread(ServerConnectionHandler::threadHandler,
+				newSocket, this, exitCondition)) == NULL)
 			return 0;
-
-		tidVector.push_back(tmpThread);
 
 		cout << "connessione accettata" << endl;
 
-		//tidVector.push_back(tmpThread);
+		tidVector.push_back(tmpThread);
+		sockThreadMap.insert(std::pair<int, thread*>(newSocket, tmpThread));
+
 		clientSockFd[nextConnection] = newSocket;
 		availableConnections--;
-
-		cout << "FINITO" << endl;
 	}
 	return newSocket;
 }
 
-void ServerConnectionHandler::foo(int arg, ServerConnectionHandler* instance) {
-	int size = 512;
-	int arg2 = arg;
-	int prova = -1;
-	while (prova == -1) {
-		cout << "lettura dal client" << arg << endl;
+void ServerConnectionHandler::threadHandler(int sockFd,
+		ServerConnectionHandler* instance, int exitCondition) {
+	void* buffer[Constants::MAX_BUFFER_SIZE];
+	ssize_t byteReceived = -1;
+	int gotError = 0;
 
-		prova = receive(size, arg);
-		this_thread::sleep_for(5s);
-		cout << "la stringa ricevuta" << prova << endl;
-	}
-	return;
-}
+	while (!exitCondition && !gotError) {
+		cout<<"arrivo nel threadhandler\n" <<endl;
 
-int ServerConnectionHandler::removeConnection(int idConnection) {
-	//ritorna 1 se la rimozione è andata buon fine
+		if ((byteReceived = recv(sockFd, buffer, 18, 0)) < 0) {
+			perror(Constants::ERROR_FAILED_RECEIVE);
 
-	int serachresult = ricerca(idConnection);
-
-	if (serachresult < 0)
-		return 0;
-
-//	//mette 0 nel corrispettivo elemento dell'array dei socket
-
-	clientSockFd[idConnection] = 0;
-//	//chiude il tread
-//	//mette 0 nell'array dei tread_i
-	tidVector[idConnection] = 0;
-//	//incrementa le disponibili
-	availableConnections++;
-	return 1;
-}
-
-int ServerConnectionHandler::ricerca(int val) {
-//rest6ituisce la posizione dell'elemento nell'array -1 altrimenti
-	int i;
-
-	for (i = 0; i < Constants::MAX_CONNECTIONS_NUMBER; i++) {
-
-		if (clientSockFd[i] == val) {
-			return 1;
-
+			//PENSARE COSA FARE QUANDO C'È un errore in lettura
+			gotError = 1;
 		}
+		cout<<byteReceived <<endl;
+		if (!gotError) {
+			cout<<"Received ok" <<endl;
 
+			instance->parseReceivedData(sockFd, buffer, byteReceived);
+		}
+		this_thread::sleep_for(3s);
 	}
-	return 0;
+
+	//STAMPA PRIMA DI USCIRE
+	return;
 }
 
 /**
  Receive data from the connected host
  */
 
-int ServerConnectionHandler::receive(int size, int sock) {
-	string reply;
-	char buffer[size];
-	int res = 0;
-	string temp;
+int ServerConnectionHandler::parseReceivedData(int sock, void * inputBuffer, size_t size) {
+
+	string tmpPrefix;
+
 	size_t byteSent;
 
+	int intPrefix = -1;
+	char *buffer;
+	const char * delimiter = Constants::DELIMITER;
+
 	//Receive a reply from the server
-		if (recv(sock, buffer, size, 0) < 0) {
-			perror("Receive failed : ");
-			res = -1;
-		}
-	temp.assign(buffer,1);
-	res = atoi(temp.c_str());
-	string delimiter = "|";
-	char* token = strtok (buffer,"|");
-	cout<<token<<endl;
-	switch (res) {
+	if(inputBuffer==NULL){
+		cout<<"Buffer null" <<endl;
+		return -1;
+	}
+	buffer = (char *) inputBuffer;
+
+	tmpPrefix.assign(buffer, 1);
+
+	if (!isdigit(tmpPrefix.c_str()[0])) {
+		cout << "Error parse " << endl;
+		return -1;
+	}
+
+	intPrefix = atoi(tmpPrefix.c_str());
+
+	//usare la funzione substr per dividere
+	char* token = strtok(buffer, delimiter);
+	cout << token << endl;
+
+	switch (intPrefix) {
 
 	case 0:
 		//end of connection
-		if ((byteSent = this->receiveClose(token,sock)) == -1)
+		if ((byteSent = this->closeAndRemoveConnection(sock, token)) == -1)
 			cout << Constants::ERROR_RECEIVE_END_CONNECTION_MSG << endl;
 
 		break;
@@ -244,71 +235,97 @@ int ServerConnectionHandler::receive(int size, int sock) {
 		//Caso default
 	default:
 		cout << "Tipo non ammesso" << endl;
-		res = -1;
+		intPrefix = -1;
 		break;
 
 	}
 
 	cout << "Il dato inviato è " << byteSent << endl;
 
-	return res;
+	return intPrefix;
 }
 
-size_t ServerConnectionHandler::receiveChar(const char* arg){
+size_t ServerConnectionHandler::receiveChar(const char* arg) {
 	size_t ris;
-ris =0;
-return ris;
+	ris = 0;
+	return ris;
 }
 //Function receive Close
 
-size_t ServerConnectionHandler::receiveClose(const char* arg,int sock){
+int ServerConnectionHandler::closeAndRemoveConnection(int sock,
+		const char* arg) {
+	map<int, thread*>::iterator it;
 
-	size_t res =0;
-
-	if(close(sock)!=0){
-
-		res =-1;
+	if (close(sock) != 0) {
+		//stampa errore
+		return -1;
 	}
-	pthread_exit(&tidVector);
+
+	it = sockThreadMap.find(sock);
+
+	if (it == sockThreadMap.end()) {
+		//STAMPA ERRORE
+		return -1;
+	}
+
+	sockThreadMap.erase(it);
+	//DA SINCRONIZZARE SEZIONE CRITICA
 	availableConnections++;
 
-
-return res;
+	return 1;
 }
 
 //Function receive Double
 
-size_t ServerConnectionHandler::receiveDouble(const char* arg){
+double ServerConnectionHandler::receiveDouble(const char* arg) {
 
-	size_t ris ;
-ris  =atof(arg);
+	double value;
 
-return ris;
+	if (arg == NULL)
+		return -1;
+	if (isdigit(arg[0]))
+		return -1;
+
+	value = atof(arg);
+
+	return value;
 }
 
 // Function receive Float
 
-size_t ServerConnectionHandler::receiveFloat(const char* arg){
-	size_t ris ;
+float ServerConnectionHandler::receiveFloat(const char* arg) {
 
-ris  =atof(arg);
+	float value;
 
-return ris;
+	if (arg == NULL)
+		return -1;
+	if (isdigit(arg[0]))
+		return -1;
+
+	value = atof(arg);
+
+	return value;
 }
 //  Function receive Integer
 
-size_t ServerConnectionHandler::receiveInt(const char* arg){
+int ServerConnectionHandler::receiveInt(const char* arg) {
 
-	size_t ris ;
-	ris =atoi(arg);
+	int value;
 
-return ris;
+	if (arg == NULL)
+		return -1;
+	if (isdigit(arg[0]))
+		return -1;
+
+	value = atoi(arg);
+
+	return value;
+
 }
-size_t ServerConnectionHandler::receiveString(const char* arg){
+size_t ServerConnectionHandler::receiveString(const char* arg) {
 
-	size_t ris ;
+	size_t ris;
 
-
-	ris =0;
+	ris = 0;
 	return ris;
 }
