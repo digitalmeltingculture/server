@@ -10,12 +10,12 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <stdlib.h>
+#include <math.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <arpa/inet.h>
 
 using namespace std;
-
 
 #include <vector>
 #include <thread>
@@ -86,7 +86,7 @@ int ServerConnectionHandler::acceptConnections(int exitCondition) {
 			<< " and port " << port << endl;
 
 	while (!exitCondition) {
-		cout<<"ASPETTO nuova connessione"<<endl;
+		cout << "ASPETTO nuova connessione" << endl;
 
 		if (availableConnections == 0)
 			continue;
@@ -98,16 +98,13 @@ int ServerConnectionHandler::acceptConnections(int exitCondition) {
 			return EXIT_FAILURE;
 		}
 		// Se la connessione è andata a buon fine mi crea il threa che gestiche i dati
-			cout<<"nuova connessione"<<endl;
+		cout << "nuova connessione" << endl;
 
-
-		//thread thread1(ServerConnectionHandler::foo, &newSocket);
-
-		tmpThread = new thread(ServerConnectionHandler::foo, &newSocket);
+		if ((tmpThread = new thread(ServerConnectionHandler::foo, newSocket))
+				== NULL)
+			return 0;
 
 		tidVector.push_back(tmpThread);
-//		if(tmpThread == NULL)
-//			return 0;
 
 		cout << "connessione accettata" << endl;
 
@@ -120,38 +117,198 @@ int ServerConnectionHandler::acceptConnections(int exitCondition) {
 	return newSocket;
 }
 
-void ServerConnectionHandler::foo(int* arg){
+void ServerConnectionHandler::foo(int arg) {
+	int size = 512;
+	int arg2 = arg;
+	int prova = -1;
+	while (prova == -1) {
+		cout << "lettura dal client" << arg << endl;
 
-	 while(1){
-		cout << "lettura dal client"<<*arg << endl;
-		this_thread::sleep_for(1s);
-	 }
+		prova = receive(size, arg);
+		this_thread::sleep_for(5s);
+		cout << "la stringa ricevuta" << prova << endl;
+	}
 	return;
 }
 
-
 int ServerConnectionHandler::removeConnection(int idConnection) {
+	//ritorna 1 se la rimozione è andata buon fine
 
-	//ritorna 1 se la connessione  è andata buon fine
+	int serachresult = ricerca(idConnection);
 
-//	int serachresult = ricerca(idConnection);
-//
-//	if (serachresult < 0)
-//		return 0;
-//
+	if (serachresult < 0)
+		return 0;
+
 //	//mette 0 nel corrispettivo elemento dell'array dei socket
-//
-//	clientSockFd[idConnection] = 0;
+
+	clientSockFd[idConnection] = 0;
 //	//chiude il tread
 //	//mette 0 nell'array dei tread_i
-//	thread_id[idConnection] = 0;
+	tidVector[idConnection] = 0;
 //	//incrementa le disponibili
-//	availableConnections++;
+	availableConnections++;
+	return 1;
 }
 
 int ServerConnectionHandler::ricerca(int val) {
 //rest6ituisce la posizione dell'elemento nell'array -1 altrimenti
+	int i;
 
-	return 1;
+	for (i = 0; i < Constants::MAX_CONNECTIONS_NUMBER; i++) {
+
+		if (clientSockFd[i] == val) {
+			return 1;
+
+		}
+
+	}
+	return 0;
 }
 
+/**
+ Receive data from the connected host
+ */
+
+int ServerConnectionHandler::receive(int size, int sock) {
+	string reply;
+	char buffer[size];
+	int res = 0;
+	string temp;
+	size_t byteSent;
+
+	//Receive a reply from the server
+		if (recv(sock, buffer, size, 0) < 0) {
+			perror("Receive failed : ");
+			res = -1;
+		}
+	temp.assign(buffer,1);
+	res = atoi(temp.c_str());
+	string delimiter = "|";
+	char* token = strtok (buffer,"|");
+	cout<<token<<endl;
+	switch (res) {
+
+	case 0:
+		//end of connection
+		if ((byteSent = this->receiveClose(token,sock)) == -1)
+			cout << Constants::ERROR_RECEIVE_END_CONNECTION_MSG << endl;
+
+		break;
+
+	case 1:
+		// byte
+//		if ((byteSent = this->sendByte(buffer)) == -1)
+//				cout << Constants::ERROR_RECEIVE_INTEGER << endl;
+
+		break;
+
+	case 2:
+		//boolean
+
+		break;
+
+	case 3:
+		//Carattere
+
+		if ((byteSent = this->receiveChar(token)) == -1)
+			cout << Constants::ERROR_RECEIVE_CHAR_MSG << endl;
+
+		break;
+	case 4:
+		//int
+
+		if ((byteSent = this->receiveInt(token)) == -1)
+			cout << Constants::ERROR_RECEIVE_INTEGER_MSG << endl;
+
+		break;
+	case 5:
+		//float
+
+		if ((byteSent = this->receiveFloat(token)) == -1)
+			cout << Constants::ERROR_RECEIVE_FLOAT_MSG << endl;
+
+		break;
+	case 8:
+		//double
+
+		if ((byteSent = this->receiveDouble(token)) == -1)
+			cout << Constants::ERROR_RECEIVE_DOUBLE_MSG << endl;
+
+		break;
+	case 9:
+		//Stringa
+		if ((byteSent = this->receiveString(token)) == -1)
+			cout << Constants::ERROR_RECEIVE_STRING_MSG << endl;
+
+		break;
+		//Caso default
+	default:
+		cout << "Tipo non ammesso" << endl;
+		res = -1;
+		break;
+
+	}
+
+	cout << "Il dato inviato è " << byteSent << endl;
+
+	return res;
+}
+
+size_t ServerConnectionHandler::receiveChar(const char* arg){
+	size_t ris;
+ris =0;
+return ris;
+}
+//Function receive Close
+
+size_t ServerConnectionHandler::receiveClose(const char* arg,int sock){
+
+	size_t res =0;
+
+	if(close(sock)!=0){
+
+		res =-1;
+	}
+	pthread_exit(&tidVector);
+	availableConnections++;
+
+
+return res;
+}
+
+//Function receive Double
+
+size_t ServerConnectionHandler::receiveDouble(const char* arg){
+
+	size_t ris ;
+ris  =atof(arg);
+
+return ris;
+}
+
+// Function receive Float
+
+size_t ServerConnectionHandler::receiveFloat(const char* arg){
+	size_t ris ;
+
+ris  =atof(arg);
+
+return ris;
+}
+//  Function receive Integer
+
+size_t ServerConnectionHandler::receiveInt(const char* arg){
+
+	size_t ris ;
+	ris =atoi(arg);
+
+return ris;
+}
+size_t ServerConnectionHandler::receiveString(const char* arg){
+
+	size_t ris ;
+
+
+	ris =0;
+	return ris;
+}

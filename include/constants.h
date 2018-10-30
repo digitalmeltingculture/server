@@ -8,12 +8,24 @@
 #ifndef INCLUDE_CONSTANTS_H_
 #define INCLUDE_CONSTANTS_H_
 
-class Constants{
-	public:
-		const static int MAX_BUFFER_SIZE = 1024;
-		const static int DEFAULT_PORT_NUMBER = 8080;
-		const static int MAX_CONNECTIONS_NUMBER = 5;
+class Constants {
+public:
+	const static int MAX_BUFFER_SIZE = 1024;
+	const static int DEFAULT_PORT_NUMBER = 8080;
+	const static int MAX_CONNECTIONS_NUMBER = 5;
 
+	static const constexpr char* ERROR_RECEIVE_INTEGER_MSG =
+			"Error receiveIntenger function: integer data received failed.";
+	static const constexpr char* ERROR_RECEIVE_FLOAT_MSG =
+			"Error receiveFloat function: float data received failed.";
+	static const constexpr char* ERROR_RECEIVE_DOUBLE_MSG =
+			"Error receiveDouble function: double data received failed.";
+	static constexpr const char* ERROR_RECEIVE_CHAR_MSG =
+			"Error receiveChar function: char data received failed.";
+	static constexpr const char* ERROR_RECEIVE_STRING_MSG =
+			"Error receiveString function: string data received failed.";
+	static constexpr const char* ERROR_RECEIVE_END_CONNECTION_MSG =
+			"Error receiveEndConnection  function: end connection  failed.";
 };
 
 #endif /* INCLUDE_CONSTANTS_H_ */

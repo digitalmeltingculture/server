@@ -36,9 +36,15 @@ public:
 	int acceptConnections(int);
 	static void* threadHandler(void*);
 	int removeConnection(int);
-	int ricerca(int val);
-
-	static void foo(int*);
+	int ricerca(int);
+	 int receive(int, int);
+	size_t receiveDouble(const char*);
+	size_t receiveFloat(const char*);
+	size_t receiveInt(const char*);
+	size_t receiveChar(const char*);
+	size_t receiveString(const char*);
+	size_t receiveClose(const char*,int);
+	void foo(int);
 };
 
 #endif /* INCLUDE_SERVERCONNECTIONHANDLER_H_ */
