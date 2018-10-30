@@ -155,8 +155,8 @@ int ServerConnectionHandler::parseReceivedData(int sock, void * inputBuffer, siz
 
 	int intPrefix = -1;
 	string buffer;
-	const char * delimiter = Constants::DELIMITER;
-
+	const char* delimiter = Constants::DELIMITER;
+	const char* verifiedDigit;
 	//Receive a reply from the server
 	if(inputBuffer==NULL){
 		cout<<"Buffer null" <<endl;
@@ -165,18 +165,19 @@ int ServerConnectionHandler::parseReceivedData(int sock, void * inputBuffer, siz
 	buffer = (char *) inputBuffer;
 
 	tmpPrefix.assign(buffer, 1);
-	if (!isdigit(buffer[0])) {
+
+	if (!isdigit(buffer.c_str()[0])) {
 		cout << "Error parse " << endl;
 		return -1;
 	}
-
-	intPrefix = atoi(tmpPrefix.c_str());
+	verifiedDigit = (const char*)buffer.c_str();
+	intPrefix = atoi(verifiedDigit);
 
 	//usare la funzione substr per dividere
-	posTrovata=buffer.find(delimiter);
+	posTrovata=buffer.find(delimiter)+1;
 	const char* token = buffer.substr(posTrovata).c_str();
-	cout << token<< endl;
-
+//	cout <<"il dato da inviare è"<< token<< endl;
+//	cout <<"La scelta è"<< intPrefix<< endl;
 	switch (intPrefix) {
 
 	case 0:
@@ -283,7 +284,7 @@ double ServerConnectionHandler::receiveDouble(const char* arg) {
 
 	if (arg == NULL)
 		return -1;
-	if (isdigit(arg[0]))
+	if (!isdigit(arg[0]))
 		return -1;
 
 	value = atof(arg);
@@ -299,7 +300,7 @@ float ServerConnectionHandler::receiveFloat(const char* arg) {
 
 	if (arg == NULL)
 		return -1;
-	if (isdigit(arg[0]))
+	if (!isdigit(arg[0]))
 		return -1;
 
 	value = atof(arg);
@@ -311,14 +312,15 @@ float ServerConnectionHandler::receiveFloat(const char* arg) {
 int ServerConnectionHandler::receiveInt(const char* arg) {
 
 	int value;
-
+ cout << "Receve int" << arg << endl;
 	if (arg == NULL)
 		return -1;
-	if (isdigit(arg[0]))
+	if (!isdigit(arg[0]))
+	{
 		return -1;
-
+	}
 	value = atoi(arg);
-
+	 cout << "Receve 2 int" << arg << endl;
 	return value;
 
 }
