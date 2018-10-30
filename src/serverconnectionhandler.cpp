@@ -151,10 +151,10 @@ int ServerConnectionHandler::parseReceivedData(int sock, void * inputBuffer, siz
 
 	string tmpPrefix;
 
-	size_t byteSent;
+	size_t byteSent,posTrovata;
 
 	int intPrefix = -1;
-	char *buffer;
+	string buffer;
 	const char * delimiter = Constants::DELIMITER;
 
 	//Receive a reply from the server
@@ -165,8 +165,7 @@ int ServerConnectionHandler::parseReceivedData(int sock, void * inputBuffer, siz
 	buffer = (char *) inputBuffer;
 
 	tmpPrefix.assign(buffer, 1);
-
-	if (!isdigit(tmpPrefix.c_str()[0])) {
+	if (!isdigit(buffer[0])) {
 		cout << "Error parse " << endl;
 		return -1;
 	}
@@ -174,8 +173,9 @@ int ServerConnectionHandler::parseReceivedData(int sock, void * inputBuffer, siz
 	intPrefix = atoi(tmpPrefix.c_str());
 
 	//usare la funzione substr per dividere
-	char* token = strtok(buffer, delimiter);
-	cout << token << endl;
+	posTrovata=buffer.find(delimiter);
+	const char* token = buffer.substr(posTrovata).c_str();
+	cout << token<< endl;
 
 	switch (intPrefix) {
 
