@@ -100,7 +100,7 @@ int ServerConnectionHandler::acceptConnections(int exitCondition) {
 		// Se la connessione è andata a buon fine mi crea il threa che gestiche i dati
 		cout << "nuova connessione" << endl;
 
-		if ((tmpThread = new thread(ServerConnectionHandler::foo, newSocket))
+		if ((tmpThread = new thread(ServerConnectionHandler::foo, newSocket, this))
 				== NULL)
 			return 0;
 
@@ -117,7 +117,7 @@ int ServerConnectionHandler::acceptConnections(int exitCondition) {
 	return newSocket;
 }
 
-void ServerConnectionHandler::foo(int arg) {
+void ServerConnectionHandler::foo(int arg, ServerConnectionHandler* instance) {
 	int size = 512;
 	int arg2 = arg;
 	int prova = -1;

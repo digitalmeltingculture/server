@@ -44,7 +44,7 @@ public:
 	size_t receiveChar(const char*);
 	size_t receiveString(const char*);
 	size_t receiveClose(const char*,int);
-	void foo(int);
+	static void foo(int, ServerConnectionHandler*);
 };
 
 #endif /* INCLUDE_SERVERCONNECTIONHANDLER_H_ */
